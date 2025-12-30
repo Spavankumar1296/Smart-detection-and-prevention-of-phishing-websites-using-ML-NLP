@@ -1,0 +1,17 @@
+flask
+flask-cors
+requests
+beautifulsoup4
+pandas
+numpy
+scikit-learn
+xgboost
+whois
+tldextract
+joblib
+faiss-cpu
+openai
+python-dotenv
+chromadb
+nltk
+urllib3

@@ -25,24 +25,28 @@ function App() {
         setLoading(true);
         setError(null);
         try {
-            let pageText = "";
+            let extractedData = {
+                url: currentUrl,
+                page_text: "",
+                title: "",
+                has_login_form: false,
+                anchors: []
+            };
 
-            // 1. Extract Page Text if in extension context
-            if (chrome.tabs && chrome.scripting) {
+            // 1. Extract Page Text via Content Script Message
+            if (chrome.tabs) {
                 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
                 if (tab && tab.id) {
                     try {
-                        const injectionResults = await chrome.scripting.executeScript({
-                            target: { tabId: tab.id },
-                            func: () => document.body.innerText,
-                        });
-                        if (injectionResults && injectionResults[0]) {
-                            pageText = injectionResults[0].result || "";
-                            // Limit text size for performance
-                            pageText = pageText.substring(0, 2000);
+                        const response = await chrome.tabs.sendMessage(tab.id, { action: "extractContent" });
+                        if (response) {
+                            extractedData = {
+                                ...extractedData,
+                                ...response
+                            };
                         }
                     } catch (e) {
-                        console.warn("Script injection failed:", e);
+                        console.warn("Content script communication failed:", e);
                     }
                 }
             }
@@ -52,10 +56,7 @@ function App() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    url: currentUrl,
-                    page_text: pageText
-                }),
+                body: JSON.stringify(extractedData),
             });
 
             if (!response.ok) {

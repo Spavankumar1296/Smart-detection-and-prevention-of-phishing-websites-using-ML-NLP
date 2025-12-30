@@ -12,7 +12,19 @@ yarn-error.log*
 datasets/
 *.csv
 *.txt
+!requirements.txt
+!test_results.txt
+!test_log.txt
+!headers.txt
 *.json
+
+
+
+
+!package.json
+!package-lock.json
+!extension/public/manifest.json
+
 *.zip
 
 # =========================
