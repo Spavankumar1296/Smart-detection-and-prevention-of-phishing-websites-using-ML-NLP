@@ -1,25 +1,29 @@
 Starting Tests...
 Test Phishing Output: {
+  "classification": "phishing",
   "content_findings": [
-    "Found 5 sensitive keywords.",
-    "Detected urgent or threatening language.",
-    "Critical: Login form detected on page with urgent/sensitive text."
+    "Content Analysis Model flagged this as suspicious (Score: 1.00)."
   ],
-  "details": "Analysis of URL: http://suspicious-login-update.com. Found 5 sensitive keywords. Detected urgent or threatening language. Critical: Login form detected on page with urgent/sensitive text. completed. Model confidence in safety: 75.6%.",
-  "explanation": "This website appears safe. No known phishing patterns or suspicious characteristics were detected.",
-  "is_phishing": false,
-  "risk_score": 0.2435,
-  "url": "http://suspicious-login-update.com"
-}
-FAIL: Phishing Content Check. Status: 200, Data: {'content_findings': ['Found 5 sensitive keywords.', 'Detected urgent or threatening language.', 'Critical: Login form detected on page with urgent/sensitive text.'], 'details': 'Analysis of URL: http://suspicious-login-update.com. Found 5 sensitive keywords. Detected urgent or threatening language. Critical: Login form detected on page with urgent/sensitive text. completed. Model confidence in safety: 75.6%.', 'explanation': 'This website appears safe. No known phishing patterns or suspicious characteristics were detected.', 'is_phishing': False, 'risk_score': 0.2435, 'url': 'http://suspicious-login-update.com'}
-Test Safe Output: {
-  "content_findings": [
-    "Content Analysis Model flagged this as suspicious (Score: 0.95)."
-  ],
-  "details": "Analysis of URL: http://google.com. Content Analysis Model flagged this as suspicious (Score: 0.95). The site has high risk indicators. completed. Risk confidence: 66.3%.",
-  "explanation": "Generic phishing pattern. The site asks for sensitive credentials without proper SSL validation or on a suspicious domain.",
+  "details": "Confidence: 100.0%. Level: PHISHING.",
+  "explanation": "\u26a0\ufe0f **PHISHING**: The site presents a login form on a suspicious domain. Attackers often clone login pages of popular services (banks, email) to steal credentials.",
   "is_phishing": true,
-  "risk_score": 0.6628647298645137,
-  "url": "http://google.com"
+  "risk_flags": [
+    "URL contains suspicious security-related keywords.",
+    "CRITICAL: Login form on insecure (HTTP) website."
+  ],
+  "risk_score": 1.0,
+  "url": "http://paypal-secure-login-update.com"
 }
-FAIL: Safe Content Check. Status: 200, Data: {'content_findings': ['Content Analysis Model flagged this as suspicious (Score: 0.95).'], 'details': 'Analysis of URL: http://google.com. Content Analysis Model flagged this as suspicious (Score: 0.95). The site has high risk indicators. completed. Risk confidence: 66.3%.', 'explanation': 'Generic phishing pattern. The site asks for sensitive credentials without proper SSL validation or on a suspicious domain.', 'is_phishing': True, 'risk_score': 0.6628647298645137, 'url': 'http://google.com'}
+PASS: Phishing/Suspicious Content Detected (Class: phishing)
+PASS: RAG Explanation verified
+Test Safe Output: {
+  "classification": "safe",
+  "content_findings": [],
+  "details": "Confidence: 32.7%. Level: SAFE.",
+  "explanation": "This website appears safe. No known phishing patterns detected.",
+  "is_phishing": false,
+  "risk_flags": [],
+  "risk_score": 0.32688478620850747,
+  "url": "http://my-personal-blog-cats.com"
+}
+PASS: Safe Content Detected

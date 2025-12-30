@@ -3,6 +3,8 @@ import math
 import urllib.parse
 from urllib.parse import urlparse
 from collections import Counter
+import socket
+import datetime
 
 def get_url_length(url):
     return len(str(url))
@@ -34,7 +36,11 @@ def is_https(url):
         return 0
 
 def suspicious_keywords(url):
-    keywords = ['login', 'verify', 'update', 'secure', 'bank', 'account', 'confirm', 'signin', 'wallet']
+    keywords = [
+        'login', 'verify', 'update', 'secure', 'bank', 'account', 'confirm', 'signin', 'wallet',
+        'auth', 'billing', 'support', 'service', 'client', 'payment', 'paypal', 'apple', 'google',
+        'microsoft', 'amazon', 'facebook', 'instagram', 'twitter', 'netflix', 'dropbox'
+    ]
     url_lower = str(url).lower()
     for key in keywords:
         if key in url_lower:
@@ -83,6 +89,33 @@ def count_tokens(url):
     tokens = re.split(r'[/\.-]', str(url))
     return len([t for t in tokens if t])
 
+def count_special_chars(url):
+    special_chars = ['@', '?', '=', '%', '&', '_', '-', '~', '+']
+    count = 0
+    for char in str(url):
+        if char in special_chars:
+            count += 1
+    return count
+
+def is_suspicious_tld(url):
+    suspicious_tlds = ['.xyz', '.tk', '.top', '.club', '.gq', '.ml', '.cf', '.ga', '.info', '.work', '.click']
+    try:
+        parsed = urlparse(str(url))
+        if parsed.hostname:
+            for tld in suspicious_tlds:
+                if parsed.hostname.endswith(tld):
+                    return 1
+        return 0
+    except:
+        return 0
+
+def get_domain_age_days(url):
+    # Placeholder for domain age. 
+    # Real implementation requires WHOIS API which is slow and often rate-limited/paid.
+    # For this offline system, we return -1 indicating unknown, or use a heuristic.
+    # We could check if it is a known high-traffic domain to assign a high age, else 0.
+    return -1
+
 def extract_features(url):
     """
     Extracts numerical features from a URL string.
@@ -103,7 +136,10 @@ def extract_features(url):
         get_path_length(url),
         get_tld_length(url),
         has_hyphen_in_domain(url),
-        count_tokens(url)
+        count_tokens(url),
+        count_special_chars(url),
+        is_suspicious_tld(url),
+        get_domain_age_days(url)
     ]
 
 def extract_feature_names():
@@ -119,7 +155,10 @@ def extract_feature_names():
         'path_length',
         'tld_length',
         'has_hyphen_domain',
-        'num_tokens'
+        'num_tokens',
+        'num_special_chars',
+        'is_suspicious_tld',
+        'domain_age_days'
     ]
 
 if __name__ == "__main__":

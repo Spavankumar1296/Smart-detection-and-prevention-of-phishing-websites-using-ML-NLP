@@ -38,11 +38,15 @@ function App() {
                 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
                 if (tab && tab.id) {
                     try {
-                        const response = await chrome.tabs.sendMessage(tab.id, { action: "extractContent" });
+                        const response = await chrome.tabs.sendMessage(tab.id, {
+                            action: "extractContent",
+                            manualUrl: currentUrl
+                        });
                         if (response) {
                             extractedData = {
                                 ...extractedData,
-                                ...response
+                                ...response,
+                                url: currentUrl // FORCE USE of manual URL (override content script's url)
                             };
                         }
                     } catch (e) {
@@ -79,7 +83,17 @@ function App() {
             </header>
 
             <div className="content">
-                <p className="url-text">Target: {currentUrl}</p>
+                <div className="url-input-container">
+                    <label htmlFor="urlInput">Target URL:</label>
+                    <input
+                        id="urlInput"
+                        type="text"
+                        value={currentUrl}
+                        onChange={(e) => setCurrentUrl(e.target.value)}
+                        className="url-input"
+                        placeholder="https://example.com"
+                    />
+                </div>
 
                 {!result && (
                     <button onClick={analyzeUrl} disabled={loading} className="scan-btn">
@@ -90,15 +104,23 @@ function App() {
                 {error && <div className="error">{error}</div>}
 
                 {result && (
-                    <div className={`result-card ${result.is_phishing ? 'danger' : 'safe'}`}>
-                        <h2>{result.is_phishing ? 'WARNING: PHISHING DETECTED' : 'WEBSITE IS SAFE'}</h2>
+                    <div className={`result-card ${result.classification}`}>
+                        <h2>
+                            {result.classification === 'phishing' ? 'WARNING: PHISHING DETECTED' :
+                                result.classification === 'suspicious' ? 'CAUTION: SUSPICIOUS SITE' :
+                                    'WEBSITE IS SAFE'}
+                        </h2>
 
                         <div className="score-box">
                             <span>Risk Score:</span>
                             <div className="progress-bar">
                                 <div
                                     className="fill"
-                                    style={{ width: `${result.risk_score * 100}%`, backgroundColor: result.is_phishing ? '#ff4d4d' : '#4caf50' }}
+                                    style={{
+                                        width: `${result.risk_score * 100}%`,
+                                        backgroundColor: result.classification === 'phishing' ? '#ff4d4d' :
+                                            result.classification === 'suspicious' ? '#f39c12' : '#4caf50'
+                                    }}
                                 ></div>
                             </div>
                             <span className="score-val">{(result.risk_score * 100).toFixed(1)}%</span>

@@ -5,11 +5,13 @@ beautifulsoup4
 pandas
 numpy
 scikit-learn
+nltk
+sentence-transformers
+faiss-cpu
 xgboost
 whois
 tldextract
 joblib
-faiss-cpu
 openai
 python-dotenv
 chromadb

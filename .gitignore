@@ -17,6 +17,12 @@ datasets/
 !test_log.txt
 !headers.txt
 *.json
+!package.json
+!package-lock.json
+!extension/public/manifest.json
+!backend/phishing_kb.json
+
+
 
 
 
@@ -56,4 +62,34 @@ venv/
 .vscode/
 .idea/
 .DS_Store
-Thumbs.db
+
+# =========================
+# Temporary Debug Scripts
+# =========================
+check_*.py
+diagnose_*.py
+extract_*.py
+test_content_scoring.py
+test_crash.py
+verify_*.py
+verify_content.py
+
+# =========================
+# Build & Distribution
+# =========================
+extension/dist/
+backend/instance/
+
+# =========================
+# Specific Log Files
+# =========================
+*_output.txt
+*_output.md
+stats.md
+debug_log.md
+training_process.txt
+verify_results.md
+verify_log.txt
+backend.log
+env_check.txt
+run_output*.txt

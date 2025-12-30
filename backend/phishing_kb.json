@@ -1,0 +1,66 @@
+[
+    {
+        "tags": [
+            "urgency",
+            "account_suspended",
+            "immediate_action"
+        ],
+        "text": "This website uses urgent language ('suspended', 'immediate action') to panic the user. Legitimate organizations rarely threaten account deletion via email or landing pages."
+    },
+    {
+        "tags": [
+            "login",
+            "fake_form",
+            "credentials"
+        ],
+        "text": "The site presents a login form on a suspicious domain. Attackers often clone login pages of popular services (banks, email) to steal credentials."
+    },
+    {
+        "tags": [
+            "verify",
+            "identity_theft",
+            "ssn",
+            "credit_card"
+        ],
+        "text": "Requests for sensitive personal information like SSN or Credit Card numbers for 'verification' are a strong indicator of phishing."
+    },
+    {
+        "tags": [
+            "paypal",
+            "brand_impersonation",
+            "subdomain"
+        ],
+        "text": "This URL mimics PayPal or a financial service. Phishers often use brand names in subdomains (e.g., 'paypal-secure.com') to trick users."
+    },
+    {
+        "tags": [
+            "generic",
+            "suspicious_domain",
+            "typosquatting"
+        ],
+        "text": "The domain name resembles a legitimate brand but contains typos or extra characters (typosquatting), which is a common technique to deceive users."
+    },
+    {
+        "tags": [
+            "free_gift",
+            "lottery",
+            "too_good_to_be_true"
+        ],
+        "text": "The site claims you have won a prize or lottery. These 'too good to be true' offers are classic bait used in phishing campaigns."
+    },
+    {
+        "tags": [
+            "update_payment",
+            "billing",
+            "service_interruption"
+        ],
+        "text": "The site asks to update payment details to avoid service interruption. This is a common tactic to steal financial information."
+    },
+    {
+        "tags": [
+            "unusual_activity",
+            "security_alert"
+        ],
+        "text": "Security alerts claiming 'unusual activity' are often used to force users into logging in on a fake page."
+    }
+]

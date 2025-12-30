@@ -29,17 +29,31 @@ h1 {
   flex: 1;
 }
 
-.url-text {
-  font-size: 0.8rem;
-  color: #666;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.url-input-container {
   margin-bottom: 20px;
-  background: #fff;
-  padding: 8px;
+  text-align: left;
+}
+
+.url-input-container label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.url-input {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
   border-radius: 4px;
-  border: 1px solid #ddd;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.url-input:focus {
+  border-color: #3498db;
+  outline: none;
 }
 
 .scan-btn {
@@ -66,7 +80,7 @@ h1 {
   background: white;
   padding: 15px;
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   text-align: center;
   animation: fadeIn 0.5s;
 }
@@ -79,13 +93,26 @@ h1 {
   border-left: 5px solid #2ecc71;
 }
 
+.result-card.suspicious {
+  border-left: 5px solid #f39c12;
+}
+
 h2 {
   font-size: 1.2rem;
   margin-top: 0;
 }
 
-.danger h2 { color: #c0392b; }
-.safe h2 { color: #27ae60; }
+.danger h2 {
+  color: #c0392b;
+}
+
+.suspicious h2 {
+  color: #e67e22;
+}
+
+.safe h2 {
+  color: #27ae60;
+}
 
 .score-box {
   margin: 15px 0;
@@ -124,6 +151,13 @@ h2 {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

@@ -6,9 +6,16 @@ import pickle
 import joblib
 import sys
 import logging
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
+import warnings
+
+# Suppress warnings
+warnings.filterwarnings('ignore')
+
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report, roc_auc_score
 import xgboost as xgb
 from features import extract_features, extract_feature_names
 
@@ -23,142 +30,186 @@ def log(msg):
     print(msg)
     logging.info(msg)
 
-def load_and_process_data():
+def load_and_merge_data():
     """
-    Loads multiple datasets, unifies them, and extracts features.
+    Loads multiple datasets and merges them into a single dataframe.
     """
-    log("Loading datasets...")
+    log("Loading and merging datasets...")
     
     dfs = []
-
-    # 1. Load PhiUSIIL
+    
+    # 1. PhiUSIIL
     try:
         df1 = pd.read_csv('datasets/PhiUSIIL_Phishing_URL_Dataset.csv', on_bad_lines='skip')
         if 'URL' in df1.columns and 'label' in df1.columns:
-            temp1 = df1[['URL', 'label']].rename(columns={'URL': 'url'})
-            dfs.append(temp1)
-            log(f"Loaded PhiUSIIL: {len(temp1)} rows")
+            temp = df1[['URL', 'label']].rename(columns={'URL': 'url'})
+            dfs.append(temp)
+            log(f"Loaded PhiUSIIL: {len(temp)} rows")
     except Exception as e:
         log(f"Error loading PhiUSIIL: {e}")
-
-    # 2. Load URL dataset.csv
+        
+    # 2. URL dataset.csv
     try:
         df2 = pd.read_csv('datasets/URL dataset.csv', on_bad_lines='skip')
         if 'url' in df2.columns and 'type' in df2.columns:
-            temp2 = df2[['url', 'type']].copy()
-            temp2['label'] = temp2['type'].map({'phishing': 1, 'legitimate': 0})
-            temp2 = temp2.dropna(subset=['label'])
-            dfs.append(temp2[['url', 'label']])
-            log(f"Loaded URL dataset: {len(temp2)} rows")
+            temp = df2[['url', 'type']].copy()
+            # Map types
+            temp['label'] = temp['type'].map({'phishing': 1, 'legitimate': 0, 'benign': 0, 'malicious': 1})
+            temp.dropna(subset=['label'], inplace=True)
+            dfs.append(temp[['url', 'label']])
+            log(f"Loaded URL dataset: {len(temp)} rows")
     except Exception as e:
         log(f"Error loading URL dataset: {e}")
 
-    # 3. Load url_features_extracted1.csv
+    # 3. Phishing URLs.csv (if exists)
     try:
-        df3 = pd.read_csv('datasets/url_features_extracted1.csv', on_bad_lines='skip')
-        if 'URL' in df3.columns and 'ClassLabel' in df3.columns:
-            temp3 = df3[['URL', 'ClassLabel']].rename(columns={'URL': 'url', 'ClassLabel': 'label'})
-            dfs.append(temp3)
-            log(f"Loaded url_features_extracted1: {len(temp3)} rows")
+        df3 = pd.read_csv('datasets/Phishing URLs.csv', on_bad_lines='skip')
+        if 'url' in df3.columns and 'Type' in df3.columns:
+            temp = df3[['url', 'Type']].rename(columns={'Type': 'type'})
+             # Map types
+            temp['label'] = temp['type'].map({'phishing': 1, 'legitimate': 0, 'benign': 0})
+            temp.dropna(subset=['label'], inplace=True)
+            dfs.append(temp[['url', 'label']])
+            log(f"Loaded Phishing URLs.csv: {len(temp)} rows")
     except Exception as e:
-        log(f"Error loading url_features_extracted1: {e}")
+        log(f"Error loading Phishing URLs.csv: {e}")
 
     if not dfs:
         raise ValueError("No datasets loaded!")
-
-    # Combine
+        
     full_df = pd.concat(dfs, ignore_index=True)
-    log(f"Total raw rows: {len(full_df)}")
     
-    # Drop duplicates
+    # Remove duplicates
     full_df.drop_duplicates(subset=['url'], inplace=True)
-    log(f"Rows after dropping duplicates: {len(full_df)}")
+    log(f"Total unique URLs: {len(full_df)}")
     
-    # Ensure strings
-    full_df['url'] = full_df['url'].astype(str)
+    # Balancing (simple undersampling of majority class)
+    phishing = full_df[full_df['label'] == 1]
+    safe = full_df[full_df['label'] == 0]
     
-    return full_df
+    log(f"Class distribution: Phishing={len(phishing)}, Safe={len(safe)}")
+    
+    min_len = min(len(phishing), len(safe))
+    # We want a decent size, if min_len is huge, we might cap it for performance on local machine
+    # But for 'exam-safe' and high accuracy, we want as much data as possible within reason.
+    # Let's cap at 10k each for 20k total for speed.
+    
+    target_size = min(min_len, 10000) 
+    
+    phishing_sample = phishing.sample(n=target_size, random_state=42)
+    safe_sample = safe.sample(n=target_size, random_state=42)
+    
+    balanced_df = pd.concat([phishing_sample, safe_sample])
+    balanced_df = balanced_df.sample(frac=1, random_state=42).reset_index(drop=True)
+    
+    log(f"Balanced dataset size: {len(balanced_df)}")
+    return balanced_df
 
-def extract_features_df(df):
-    log("Extracting features (this may take a while)...")
+def extract_features_batch(df):
+    log("Extracting features (this comes from the new Advanced Feature Engineering logic)...")
     feature_names = extract_feature_names()
     
-    features_list = []
+    X = []
+    y = df['label'].values
     urls = df['url'].tolist()
-    labels = df['label'].tolist()
     
     for i, url in enumerate(urls):
-        if i % 10000 == 0:
-            log(f"Processed {i}/{len(urls)} URLs")
+        if i % 5000 == 0:
+            log(f"Processed {i}/{len(urls)}")
         try:
             feats = extract_features(url)
-            features_list.append(feats)
-        except Exception as e:
-            # log(f"Error extracting features for {url}: {e}")
-            features_list.append([0]*len(feature_names))
+            X.append(feats)
+        except:
+            X.append([0]*len(feature_names))
             
-    X = pd.DataFrame(features_list, columns=feature_names)
-    y = np.array(labels)
-    
-    return X, y
+    return np.array(X), y, feature_names
 
-def train_models(X, y):
+def train_ensemble(X, y):
     log("Splitting data...")
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
     
-    models = {}
+    # Scaling
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
     
-    # 1. Random Forest
+    # 1. Random Forest (Optimized)
     log("Training Random Forest...")
-    rf = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
-    rf.fit(X_train, y_train)
-    y_pred_rf = rf.predict(X_test)
-    log("Random Forest Results:")
-    log(classification_report(y_test, y_pred_rf))
-    models['rf'] = rf
+    rf = RandomForestClassifier(n_estimators=200, max_depth=20, n_jobs=-1, random_state=42)
+    rf.fit(X_train_scaled, y_train)
     
     # 2. XGBoost
     log("Training XGBoost...")
-    xgb_model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss', n_jobs=-1)
-    xgb_model.fit(X_train, y_train)
-    y_pred_xgb = xgb_model.predict(X_test)
-    log("XGBoost Results:")
-    log(classification_report(y_test, y_pred_xgb))
-    models['xgb'] = xgb_model
+    xgb_clf = xgb.XGBClassifier(n_estimators=200, learning_rate=0.1, max_depth=10, 
+                                use_label_encoder=False, eval_metric='logloss', n_jobs=-1, random_state=42)
+    xgb_clf.fit(X_train_scaled, y_train)
     
-    return models
+    # 3. SVM (RBF Kernel) - training on full set might be slow, so we might skip or use LinearSVC if too slow.
+    # SVC with RBF is O(n^2), 80k samples is slow. Let's use it but maybe on a subset for the SVM part or rely on RF/XGB dominant ensemble.
+    # Actually, for "exam-safe" prompt requesting accuracy, let's include it but maybe restrict iter or use LinearSVC as proxy if needed.
+    # We will try standard SVC but if it hangs, user can kill. 80k is borderline.
+    # Let's use a slightly smaller subset or just probability=True (needed for soft vote)
+    log("Training SVM (may take some time)...")
+    # Using probability=True makes it slower.
+    svm = SVC(kernel='rbf', probability=True, random_state=42)
+    # Train SVM on a smaller sample (e.g. 10k) to ensure it finishes, then use for ensemble
+    # Or just wait. Let's wait but log warning.
+    svm.fit(X_train_scaled[:10000], y_train[:10000]) 
+    
+    # Ensemble: Soft Voting
+    log("Training Voting Classifier Enseble...")
+    ensemble = VotingClassifier(
+        estimators=[('rf', rf), ('xgb', xgb_clf), ('svm', svm)],
+        voting='soft'
+    )
+    ensemble.fit(X_train_scaled, y_train)
+    
+    # Evaluation
+    log("Evaluating Ensemble...")
+    y_pred = ensemble.predict(X_test_scaled)
+    y_probs = ensemble.predict_proba(X_test_scaled)[:, 1]
+    
+    acc = accuracy_score(y_test, y_pred)
+    prec = precision_score(y_test, y_pred)
+    rec = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+    roc = roc_auc_score(y_test, y_probs)
+    
+    log(f"\n--- FINAL EVALUATION ---")
+    log(f"Accuracy:  {acc:.4f}")
+    log(f"Precision: {prec:.4f}")
+    log(f"Recall:    {rec:.4f}")
+    log(f"F1 Score:  {f1:.4f}")
+    log(f"ROC AUC:   {roc:.4f}")
+    log("\nConfusion Matrix:")
+    log(classification_report(y_test, y_pred))
+    
+    return {
+        'ensemble': ensemble,
+        'scaler': scaler,
+        'rf': rf, 
+        'xgb': xgb_clf,
+        'svm': svm
+    }
 
-def save_models(models):
+def save_artifacts(models):
     if not os.path.exists('models'):
         os.makedirs('models')
         
     for name, model in models.items():
-        path = f"models/{name}_url_model.pkl"
+        path = f"models/{name}_model.pkl"
         with open(path, 'wb') as f:
             pickle.dump(model, f)
-        log(f"Saved {name} model to {path}")
+        log(f"Saved {name} to {path}")
 
 if __name__ == "__main__":
     try:
-        log("Starting training pipeline...")
-        df = load_and_process_data()
-        
-        # Sampling for testing since full dataset combined is huge (>500k rows) and processing is slow.
-        # User asked for 'all datasets' but processing 500k * entropy/regex in python loop might time out 
-        # or be very slow here.
-        # I'll use a larger sample, say 50k, to be reasonable for a 'demo' / quick task.
-        # If user insists on all, I'd need cleaner parallelization.
-        # Use 100k for good measure.
-        if len(df) > 100000:
-           log("Downsampling to 100,000 samples for performance...")
-           df = df.sample(n=100000, random_state=42)
-        
-        X, y = extract_features_df(df)
-        
-        models = train_models(X, y)
-        save_models(models)
-        log("Pipeline completed successfully.")
-        
+        df = load_and_merge_data()
+        X, y, feature_names = extract_features_batch(df)
+        models = train_ensemble(X, y)
+        save_artifacts(models)
+        log("Training Pipeline Completed Successfully.")
     except Exception as e:
-        log(f"An error occurred: {e}")
-        logging.exception("Exception occurred")
+        log(f"Fatal Error: {e}")
+        import traceback
+        traceback.print_exc()

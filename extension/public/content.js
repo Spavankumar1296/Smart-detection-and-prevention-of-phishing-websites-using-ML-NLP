@@ -30,7 +30,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         };
 
         // LOGGING AS REQUESTED
-        console.log("PhishGuard Extracted Content:", data);
+        // If the user manually provided a URL in the popup, log that as the target.
+        const targetUrl = request.manualUrl || data.url;
+        console.log(`PhishGuard Scanning: ${targetUrl} (Source Page: ${data.url})`);
+        console.log("PhishGuard Extracted Data:", data);
 
         sendResponse(data);
     }
