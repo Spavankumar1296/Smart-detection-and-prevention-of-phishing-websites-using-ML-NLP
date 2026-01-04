@@ -82,13 +82,31 @@ def analyze():
         print(f"Error extracting features: {e}")
         features_array = None # Flag to skip model
     
+    
     # 2. Content Analysis
     print("DEBUG: Starting Content Analysis")
     page_text = data.get('page_text', '')
-    content_result = content_features.analyze_content(page_text)
+    
+    # Extract structural data from request for the ML model
+    # Note: The model expects [num_forms, num_inputs, num_external_links, num_scripts, has_password_input]
+    # We map what we have from the extension.
+    anchors = data.get('anchors', [])
+    num_external_links = len(anchors) # Simplify: assume all reported anchors are relevant
+    has_login = 1 if data.get('has_login_form') else 0
+    
+    # Defaults for things we don't fully get from extension yet
+    # We could infer num_forms >= 1 if has_login is true
+    structural_data = {
+        'num_forms': 1 if has_login else 0,
+        'num_inputs': 0, # Not currently sent
+        'num_external_links': num_external_links,
+        'num_scripts': 0, # Not currently sent
+        'has_password_input': has_login
+    }
+    
+    content_result = content_features.analyze_content(page_text, structural_data=structural_data)
     print(f"DEBUG: Content Analysis result: {content_result}")
     
-
     # 3. Prediction
     risk_score = 0.0
     is_phishing = False
@@ -146,6 +164,9 @@ def analyze():
         print(f"Error checking feature heuristics: {e}")
 
     # C2. Content Heuristics
+    # Check for safe context to mitigate penalties
+    is_safe_context = content_result.get('has_safe_context', 0)
+    
     if data.get('has_login_form'):
 
         # Login form on non-HTTPS is critical
@@ -154,6 +175,7 @@ def analyze():
              risk_flags.append("CRITICAL: Login form on insecure (HTTP) website.")
         else:
              # Just a login form is suspicious if combined with urgency
+             # But if safe context (interview), ignore "login" risk if no urgency
              if content_result['has_urgency']:
                  heuristic_penalty += 0.2
                  risk_flags.append("Login form with urgent/threatening language.")
@@ -163,11 +185,15 @@ def analyze():
         heuristic_penalty += 0.1
         risk_flags.append("Urgent or threatening language detected.")
         
-    if content_result['keyword_count'] > 0:
+    # Only apply keyword penalty if NOT a safe context
+    if content_result['keyword_count'] > 0 and not is_safe_context:
          # Scale penalty: 0.05 per keyword, capped at 0.2
          k_penalty = min(0.2, content_result['keyword_count'] * 0.05)
          heuristic_penalty += k_penalty
          risk_flags.append(f"Found {content_result['keyword_count']} sensitive keywords.")
+    elif is_safe_context and content_result['keyword_count'] > 0:
+        # Log it but don't penalize
+        print(f"DEBUG: Ignored {content_result['keyword_count']} keywords due to Safe Context.")
     
     # D. Final Score Calculation (Weighted)
     # Weights: URL Model (50%), Content Model (30%), Heuristics (20% + Additive Penalties)
@@ -222,7 +248,15 @@ def analyze():
         print(f"DEBUG: RAG Query: {query}")
         
         retrieved_text = rag_explainer.get_explanation(query)
-        explanation = f"⚠️ **{classification.upper()}**: {retrieved_text}"
+        
+        # Dynamic Context: Join unique risk flags to show *why* it was flagged
+        # Use set to remove duplicates if findings and flags overlap
+        unique_reasons = list(set(risk_flags + content_result['findings']))
+        reason_str = ""
+        if unique_reasons:
+            reason_str = "**Reason:** " + "; ".join(unique_reasons) + ".\n"
+            
+        explanation = f"⚠️ **{classification.upper()}**: {reason_str}\n**Insight:** {retrieved_text}"
         
     response = {
         "url": url,

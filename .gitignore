@@ -10,6 +10,7 @@ yarn-error.log*
 # Datasets (DO NOT COMMIT)
 # =========================
 datasets/
+html_content/
 *.csv
 *.txt
 !requirements.txt
