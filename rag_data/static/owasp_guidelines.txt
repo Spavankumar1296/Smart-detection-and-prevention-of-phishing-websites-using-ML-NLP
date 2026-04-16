@@ -1,0 +1,35 @@
+Phishing Prevention Guidelines (OWASP Inspired)
+
+Phishing is a social engineering attack where attackers impersonate legitimate organizations to steal credentials or financial information.
+
+Common Phishing Indicators:
+
+1. Suspicious Domain Names
+   - Misspelled domains (paypa1.com instead of paypal.com)
+   - Extra subdomains (login.secure.paypal.fake.com)
+   - Domains hosted on IP addresses
+
+2. Fake Login Forms
+   - Pages asking for username and password
+   - Multiple input fields for sensitive data
+   - Password fields on non-official domains
+
+3. Urgent or Threatening Language
+   - "Your account will be suspended"
+   - "Immediate action required"
+   - "Verify within 24 hours"
+
+4. HTTPS Misuse
+   - Recently issued SSL certificates
+   - HTTPS does not guarantee legitimacy
+
+5. Suspicious Links
+   - Mismatch between visible text and actual link
+   - URL shorteners hiding real domain
+
+Prevention Recommendations:
+- Always verify domain spelling.
+- Enable multi-factor authentication.
+- Avoid clicking links in suspicious emails.
+- Check certificate issuer and validity.
+- Use updated browsers and security tools.

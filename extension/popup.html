@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #13131a;
+            --border: #1e1e2e;
+            --text: #e8e8f0;
+            --muted: #6b6b80;
+            --safe: #00e87a;
+            --safe-dim: #00e87a22;
+            --phishing: #ff2d55;
+            --phishing-dim: #ff2d5522;
+            --accent: #7c6aff;
+        }
+
+        body {
+            width: 360px;
+            min-height: 480px;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Syne', sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ── Background grid ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 32px 32px;
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* ── Header ── */
+        header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .shield-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), #a78bff);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+            box-shadow: 0 0 20px #7c6aff44;
+        }
+
+        .header-text h1 {
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            color: var(--text);
+        }
+
+        .header-text p {
+            font-size: 10px;
+            color: var(--muted);
+            font-family: 'Space Mono', monospace;
+            letter-spacing: 0.06em;
+        }
+
+        /* ── Loading ── */
+        #loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 48px 0;
+        }
+
+        .scan-ring {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            animation: spin 1s linear infinite;
+            position: relative;
+        }
+
+        .scan-ring::after {
+            content: '';
+            position: absolute;
+            inset: 6px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: #a78bff88;
+            animation: spin 0.6s linear infinite reverse;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #loading p {
+            font-size: 12px;
+            color: var(--muted);
+            font-family: 'Space Mono', monospace;
+            letter-spacing: 0.08em;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50%       { opacity: 1; }
+        }
+
+        /* ── Result ── */
+        #result {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            animation: fadeUp 0.4s ease forwards;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Verdict Card ── */
+        .verdict-card {
+            border-radius: 12px;
+            padding: 24px 20px;
+            text-align: center;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .verdict-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0.06;
+            transition: opacity 0.4s;
+        }
+
+        .verdict-card.safe {
+            border-color: var(--safe);
+            box-shadow: 0 0 32px var(--safe-dim), inset 0 0 32px var(--safe-dim);
+        }
+
+        .verdict-card.safe::before {
+            background: var(--safe);
+            opacity: 0.08;
+        }
+
+        .verdict-card.phishing {
+            border-color: var(--phishing);
+            box-shadow: 0 0 32px var(--phishing-dim), inset 0 0 32px var(--phishing-dim);
+            animation: dangerPulse 2s ease-in-out infinite;
+        }
+
+        .verdict-card.phishing::before {
+            background: var(--phishing);
+            opacity: 0.08;
+        }
+
+        @keyframes dangerPulse {
+            0%, 100% { box-shadow: 0 0 32px var(--phishing-dim), inset 0 0 32px var(--phishing-dim); }
+            50%       { box-shadow: 0 0 52px #ff2d5544, inset 0 0 52px #ff2d5522; }
+        }
+
+        .verdict-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .verdict-label {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .verdict-card.safe  .verdict-label { color: var(--safe); }
+        .verdict-card.phishing .verdict-label { color: var(--phishing); }
+
+        .verdict-sublabel {
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            color: var(--muted);
+            margin-top: 4px;
+            letter-spacing: 0.1em;
+        }
+
+        /* ── Score row ── */
+        .score-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .score-label {
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            color: var(--muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .score-value {
+            font-size: 32px;
+            font-weight: 800;
+            font-family: 'Space Mono', monospace;
+            line-height: 1;
+        }
+
+        .score-value.safe     { color: var(--safe); }
+        .score-value.phishing { color: var(--phishing); }
+
+        /* ── Risk bar ── */
+        .risk-bar-track {
+            height: 6px;
+            background: var(--border);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .risk-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 0%;
+        }
+
+        .risk-bar-fill.safe     { background: linear-gradient(90deg, #00c95d, var(--safe)); }
+        .risk-bar-fill.phishing { background: linear-gradient(90deg, #ff6b35, var(--phishing)); }
+
+        /* ── AI Explanation ── */
+        .explanation-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+        }
+
+        .explanation-section h3 {
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            color: var(--muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        #explanation-text {
+            font-size: 11px;
+            line-height: 1.7;
+            color: #a0a0b8;
+            font-family: 'Space Mono', monospace;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        #explanation-text::-webkit-scrollbar { width: 3px; }
+        #explanation-text::-webkit-scrollbar-track { background: transparent; }
+        #explanation-text::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        /* ── Error ── */
+        #error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 32px 0;
+            text-align: center;
+        }
+
+        #error-msg {
+            font-size: 12px;
+            color: var(--muted);
+            font-family: 'Space Mono', monospace;
+        }
+
+        #retry-btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            font-family: 'Syne', sans-serif;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        #retry-btn:hover { opacity: 0.85; }
+
+        /* ── PHISHING ALERT OVERLAY ── */
+        #phishing-alert {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            background: #0a0005;
+            animation: alertIn 0.3s ease forwards;
+        }
+
+        @keyframes alertIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        /* animated scan lines */
+        #phishing-alert::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                #ff2d5508 2px,
+                #ff2d5508 4px
+            );
+            animation: scanDown 3s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scanDown {
+            from { background-position: 0 0; }
+            to   { background-position: 0 100px; }
+        }
+
+        .alert-top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--phishing);
+            box-shadow: 0 0 20px var(--phishing);
+            animation: barFlash 0.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes barFlash {
+            from { opacity: 0.6; }
+            to   { opacity: 1; box-shadow: 0 0 40px var(--phishing); }
+        }
+
+        .alert-body {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 0 24px;
+            text-align: center;
+        }
+
+        .alert-icon-wrap {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 2px solid var(--phishing);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 0 40px #ff2d5566;
+            animation: iconPulse 1s ease-in-out infinite alternate;
+            margin-bottom: 4px;
+        }
+
+        @keyframes iconPulse {
+            from { box-shadow: 0 0 20px #ff2d5544; transform: scale(0.97); }
+            to   { box-shadow: 0 0 60px #ff2d5588; transform: scale(1.03); }
+        }
+
+        .alert-tag {
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            letter-spacing: 0.2em;
+            color: var(--phishing);
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        .alert-title {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--phishing);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            text-shadow: 0 0 30px #ff2d5599;
+            line-height: 1.1;
+        }
+
+        .alert-subtitle {
+            font-size: 11px;
+            color: #ff8099;
+            font-family: 'Space Mono', monospace;
+            line-height: 1.6;
+            max-width: 260px;
+        }
+
+        .alert-score-chip {
+            background: #ff2d5515;
+            border: 1px solid #ff2d5544;
+            border-radius: 99px;
+            padding: 4px 14px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--phishing);
+            margin-top: 2px;
+        }
+
+        .alert-explanation {
+            background: #1a0008;
+            border: 1px solid #ff2d5522;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-top: 4px;
+            max-height: 80px;
+            overflow-y: auto;
+            width: 100%;
+            text-align: left;
+        }
+
+        .alert-explanation p {
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            color: #aa6070;
+            line-height: 1.6;
+        }
+
+        .alert-explanation::-webkit-scrollbar { width: 2px; }
+        .alert-explanation::-webkit-scrollbar-thumb { background: #ff2d5533; }
+
+        .alert-dismiss-btn {
+            background: transparent;
+            border: 1px solid #ff2d5544;
+            color: var(--phishing);
+            border-radius: 8px;
+            padding: 8px 28px;
+            font-family: 'Syne', sans-serif;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 6px;
+            letter-spacing: 0.05em;
+            transition: all 0.2s;
+        }
+
+        .alert-dismiss-btn:hover {
+            background: #ff2d5515;
+            border-color: var(--phishing);
+            box-shadow: 0 0 16px #ff2d5533;
+        }
+
+        /* ── Utility ── */
+        .hidden { display: none !important; }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <!-- HEADER -->
+        <header>
+            <div class="shield-icon">🛡</div>
+            <div class="header-text">
+                <h1>PhishGuard</h1>
+                <p>HYBRID DETECTION SYSTEM</p>
+            </div>
+        </header>
+
+        <!-- LOADING STATE -->
+        <div id="loading">
+            <div class="scan-ring"></div>
+            <p>SCANNING WEBSITE...</p>
+        </div>
+
+        <!-- RESULT STATE -->
+        <div id="result" class="hidden">
+
+            <!-- Verdict Card -->
+            <div id="verdict-card" class="verdict-card safe">
+                <span id="verdict-icon" class="verdict-icon">✅</span>
+                <div id="verdict-label" class="verdict-label">Safe</div>
+                <div class="verdict-sublabel" id="verdict-sublabel">NO THREATS DETECTED</div>
+            </div>
+
+            <!-- Risk Score -->
+            <div class="score-section">
+                <div class="score-label">Risk Score</div>
+                <div id="score-value" class="score-value safe">0.00%</div>
+                <div class="risk-bar-track">
+                    <div id="risk-bar-fill" class="risk-bar-fill safe"></div>
+                </div>
+            </div>
+
+            <!-- AI Explanation -->
+            <div class="explanation-section">
+                <h3>AI Analysis</h3>
+                <div id="explanation-text">Waiting for analysis...</div>
+            </div>
+
+        </div>
+
+        <!-- ERROR STATE -->
+        <div id="error" class="hidden">
+            <p id="error-msg">Error connecting to server.</p>
+            <button id="retry-btn">Retry</button>
+        </div>
+
+    </div>
+
+    <!-- ── PHISHING ALERT OVERLAY ── -->
+    <div id="phishing-alert" class="hidden">
+        <div class="alert-top-bar"></div>
+        <div class="alert-body">
+            <div class="alert-icon-wrap">⚠️</div>
+            <div class="alert-tag">THREAT DETECTED</div>
+            <div class="alert-title">PHISHING<br>SITE</div>
+            <div class="alert-subtitle">This website has been identified as a phishing attempt. Do not enter any personal information.</div>
+            <div class="alert-score-chip">Risk Score: <span id="alert-score">0%</span></div>
+            <div class="alert-explanation">
+                <p id="alert-explanation-text">Analyzing...</p>
+            </div>
+            <button class="alert-dismiss-btn" id="alert-dismiss-btn">VIEW DETAILS →</button>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>

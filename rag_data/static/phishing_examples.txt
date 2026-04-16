@@ -1,0 +1,22 @@
+Real-World Phishing Case Examples
+
+Case 1:
+A fake PayPal login page hosted at paypa1-secure-login.com.
+The page contained a login form requesting email and password.
+The domain name contained a numeric substitution (1 instead of l).
+
+Case 2:
+A banking phishing site hosted on an IP address instead of a domain name.
+The page asked for credit card number, expiry date, and CVV.
+
+Case 3:
+A fake Microsoft 365 login page using micr0soft-login.net.
+The site used HTTPS but the SSL certificate was recently issued.
+
+Case 4:
+An email claiming to be from a courier service asking users to track package delivery.
+The link redirected to a credential harvesting website.
+
+Case 5:
+A cryptocurrency phishing page promising rewards after wallet login.
+Multiple suspicious JavaScript redirects were detected.

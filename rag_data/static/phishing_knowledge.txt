@@ -1,0 +1,26 @@
+Phishing Attack Types and Techniques
+
+1. Spear Phishing
+   Targeted attack aimed at specific individuals or organizations.
+
+2. Clone Phishing
+   A legitimate email is copied and malicious links are inserted.
+
+3. Smishing
+   Phishing conducted via SMS messages.
+
+4. Vishing
+   Phishing conducted through voice calls.
+
+5. Credential Harvesting
+   Fake login pages designed to capture user credentials.
+
+6. Business Email Compromise (BEC)
+   Attackers impersonate executives to request financial transfers.
+
+Common Technical Indicators:
+- High URL entropy
+- Suspicious file extensions (.exe, .zip)
+- Excessive use of hyphens
+- High number of numeric characters
+- Multiple form input fields
