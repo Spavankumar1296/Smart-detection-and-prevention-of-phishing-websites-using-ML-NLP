@@ -1,5 +1,4 @@
-# PhishGuard Hybrid Phishing Detection System
-
+# Smart-detection-and-prevention-of-phishing-websites-using-ML-NLP
 This project implements a hybrid phishing detection system using Machine Learning (URL analysis) and NLP (HTML content analysis). It consists of a Flask backend and a Chrome Extension.
 
 ## 1. Backend Setup (Python Flask)
